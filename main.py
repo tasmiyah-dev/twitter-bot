@@ -34,16 +34,24 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
+def schedule_ist_job():
+    """Wrapper to ensure scheduled job runs in IST timezone context."""
+    now_ist = datetime.now(config.IST_TZ)
+    logger.info(f"Running scheduled quote post at {now_ist.strftime('%Y-%m-%d %H:%M:%S')} IST")
+    post_daily_quote()
+
 def init():
     logger.info("Initializing Twitter Bot...")
     db.init_db()
     logger.info("Database initialized")
     
     logger.info(f"Scheduling daily quote post at {config.POST_TIME} IST")
-    schedule.every().day.at(config.POST_TIME).do(post_daily_quote)
+    logger.info("Note: Schedule library uses local system time. Ensure host timezone is set to IST or adjust accordingly.")
+    schedule.every().day.at(config.POST_TIME).do(schedule_ist_job)
     
     logger.info(f"Monitoring hashtags: {config.HASHTAGS_TO_MONITOR}")
     logger.info(f"Reply keywords: {config.REPLY_KEYWORDS}")
+    logger.info(f"Max replies per hour: {config.MAX_REPLIES_PER_HOUR}")
     logger.info("Bot initialized successfully")
 
 def run_scheduled_tasks():
