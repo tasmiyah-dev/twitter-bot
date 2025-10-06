@@ -1,0 +1,102 @@
+[
+  {
+    "quote": "The only way to do great work is to love what you do.",
+    "author": "Steve Jobs",
+    "category": "Success"
+  },
+  {
+    "quote": "Innovation distinguishes between a leader and a follower.",
+    "author": "Steve Jobs",
+    "category": "Business"
+  },
+  {
+    "quote": "Your time is limited, don't waste it living someone else's life.",
+    "author": "Steve Jobs",
+    "category": "Motivation"
+  },
+  {
+    "quote": "Technology is best when it brings people together.",
+    "author": "Matt Mullenweg",
+    "category": "Technology"
+  },
+  {
+    "quote": "The best time to plant a tree was 20 years ago. The second best time is now.",
+    "author": "Chinese Proverb",
+    "category": "Motivation"
+  },
+  {
+    "quote": "Success is not final, failure is not fatal: it is the courage to continue that counts.",
+    "author": "Winston Churchill",
+    "category": "Success"
+  },
+  {
+    "quote": "The way to get started is to quit talking and begin doing.",
+    "author": "Walt Disney",
+    "category": "Business"
+  },
+  {
+    "quote": "Don't watch the clock; do what it does. Keep going.",
+    "author": "Sam Levenson",
+    "category": "Motivation"
+  },
+  {
+    "quote": "The future belongs to those who believe in the beauty of their dreams.",
+    "author": "Eleanor Roosevelt",
+    "category": "Success"
+  },
+  {
+    "quote": "Any sufficiently advanced technology is indistinguishable from magic.",
+    "author": "Arthur C. Clarke",
+    "category": "Technology"
+  },
+  {
+    "quote": "The only impossible journey is the one you never begin.",
+    "author": "Tony Robbins",
+    "category": "Motivation"
+  },
+  {
+    "quote": "Leadership is not about being in charge. It's about taking care of those in your charge.",
+    "author": "Simon Sinek",
+    "category": "Business"
+  },
+  {
+    "quote": "Code is like humor. When you have to explain it, it's bad.",
+    "author": "Cory House",
+    "category": "Technology"
+  },
+  {
+    "quote": "The harder you work for something, the greater you'll feel when you achieve it.",
+    "author": "Anonymous",
+    "category": "Success"
+  },
+  {
+    "quote": "Dream bigger. Do bigger.",
+    "author": "Anonymous",
+    "category": "Motivation"
+  },
+  {
+    "quote": "First, solve the problem. Then, write the code.",
+    "author": "John Johnson",
+    "category": "Technology"
+  },
+  {
+    "quote": "Great things in business are never done by one person. They're done by a team of people.",
+    "author": "Steve Jobs",
+    "category": "Business"
+  },
+  {
+    "quote": "The secret of getting ahead is getting started.",
+    "author": "Mark Twain",
+    "category": "Motivation"
+  },
+  {
+    "quote": "Quality is not an act, it is a habit.",
+    "author": "Aristotle",
+    "category": "Success"
+  },
+  {
+    "quote": "Make it work, make it right, make it fast.",
+    "author": "Kent Beck",
+    "category": "Technology"
+  }
+]

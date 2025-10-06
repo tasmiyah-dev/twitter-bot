@@ -1,0 +1,65 @@
+import logging
+from typing import Dict
+
+from openai import OpenAI
+
+from .. import config
+
+logger = logging.getLogger(__name__)
+
+_client = None
+
+def get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        _client = OpenAI(api_key=config.OPENAI_API_KEY)
+    return _client
+
+SYSTEM_PROMPT = (
+    "You are a helpful, concise social media assistant. You answer mentions and DMs for a tech freelancer. "
+    "Be friendly, avoid jargon, keep tweets under 240 characters. If asked about pricing/services/availability, "
+    "provide clear info and suggest DM for details. Avoid making promises you can't keep."
+)
+
+ESCALATION_HINT = (
+    "If the query is complex, ambiguous, legal/financial advice, or requires custom quoting, suggest a human follow-up."
+)
+
+MODERATION_PROMPT = "Classify if the text is unsafe, hateful, or spam. Return 'ok' or 'block'."
+
+
+def moderate_text(text: str) -> bool:
+    """Return True if safe to proceed."""
+    try:
+        client = get_client()
+        resp = client.moderations.create(
+            model="omni-moderation-latest",
+            input=text,
+        )
+        result = resp.results[0]
+        return not result.flagged
+    except Exception as e:
+        logger.warning(f"Moderation failed, defaulting to safe: {e}")
+        return True
+
+
+def generate_reply(context: Dict) -> str:
+    user_text = context.get("text", "")
+    profile = context.get("profile", {})
+    sentiment = context.get("sentiment", "neutral")
+    try:
+        client = get_client()
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": f"Tweet/Text: {user_text}\nProfile: {profile}\nSentiment: {sentiment}\n{ESCALATION_HINT}"},
+        ]
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=120,
+        )
+        return resp.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"OpenAI reply generation failed: {e}")
+        return "Thanks for reaching out! I'll DM you shortly with details."
