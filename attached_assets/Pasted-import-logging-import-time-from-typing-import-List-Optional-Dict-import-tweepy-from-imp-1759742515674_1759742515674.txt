@@ -1,0 +1,145 @@
+import logging
+import time
+from typing import List, Optional, Dict
+
+import tweepy
+
+from .. import config
+
+logger = logging.getLogger(__name__)
+
+class TwitterClient:
+    def __init__(self):
+        self.auth = tweepy.OAuth1UserHandler(
+            config.TWITTER_API_KEY,
+            config.TWITTER_API_SECRET,
+            config.TWITTER_ACCESS_TOKEN,
+            config.TWITTER_ACCESS_TOKEN_SECRET,
+        )
+        self.api_v1 = tweepy.API(self.auth, wait_on_rate_limit=True)
+        self.client_v2 = tweepy.Client(
+            bearer_token=config.TWITTER_BEARER_TOKEN,
+            consumer_key=config.TWITTER_API_KEY,
+            consumer_secret=config.TWITTER_API_SECRET,
+            access_token=config.TWITTER_ACCESS_TOKEN,
+            access_token_secret=config.TWITTER_ACCESS_TOKEN_SECRET,
+            wait_on_rate_limit=True,
+        )
+
+    def _retry(self, func, *args, **kwargs):
+        retries = kwargs.pop("retries", 3)
+        delay = kwargs.pop("delay", 2)
+        for attempt in range(retries):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logger.error(f"Twitter API error: {e}")
+                if attempt == retries - 1:
+                    raise
+                time.sleep(delay * (attempt + 1))
+
+    def post_tweet(self, text: str, media_ids: Optional[List[str]] = None) -> str:
+        resp = self._retry(self.client_v2.create_tweet, text=text, media_ids=media_ids)
+        tweet_id = str(resp.data["id"]) if hasattr(resp, "data") else str(resp["data"]["id"])  # compat
+        return tweet_id
+
+    def upload_media(self, filepath: str) -> str:
+        media = self._retry(self.api_v1.media_upload, filename=filepath)
+        return media.media_id_string
+
+    def like_tweet(self, tweet_id: str):
+        self._retry(self.client_v2.like, tweet_id=tweet_id)
+
+    def retweet(self, tweet_id: str):
+        self._retry(self.client_v2.retweet, tweet_id=tweet_id)
+
+    def reply(self, in_reply_to_tweet_id: str, text: str) -> str:
+        resp = self._retry(self.client_v2.create_tweet, text=text, in_reply_to_tweet_id=in_reply_to_tweet_id)
+        return str(resp.data["id"]) if hasattr(resp, "data") else str(resp["data"]["id"])  # compat
+
+    def get_me(self):
+        return self._retry(self.client_v2.get_me)
+
+    def get_mentions_since(self, since_id: Optional[str]) -> List[dict]:
+        params = {
+            "expansions": ["author_id"],
+            "tweet_fields": ["created_at", "public_metrics"],
+            "user_fields": ["username", "description", "public_metrics"],
+            "max_results": 100,
+            "since_id": since_id,
+        }
+        resp = self._retry(self.client_v2.get_users_mentions, id=self.get_me().data.id, **{k:v for k,v in params.items() if v is not None})
+        tweets = []
+        users_index = {u.id: u for u in (resp.includes.get("users", []) if hasattr(resp, "includes") else [])}
+        for t in resp.data or []:
+            user = users_index.get(t.author_id)
+            tweets.append({
+                "id": str(t.id),
+                "text": t.text,
+                "created_at": t.created_at,
+                "author": {
+                    "id": str(user.id) if user else None,
+                    "username": user.username if user else None,
+                    "description": user.description if user else None,
+                    "followers": user.public_metrics.get("followers_count") if user else 0,
+                },
+                "metrics": t.public_metrics,
+            })
+        return tweets
+
+    def get_followers_count(self) -> int:
+        resp = self._retry(self.client_v2.get_me, user_fields=["public_metrics"])
+        try:
+            return int(resp.data.public_metrics.get("followers_count", 0))
+        except Exception:
+            return 0
+
+    def get_tweet_metrics(self, ids: List[str]) -> Dict[str, Dict[str, int]]:
+        if not ids:
+            return {}
+        resp = self._retry(
+            self.client_v2.get_tweets,
+            ids=ids,
+            tweet_fields=["public_metrics"],
+        )
+        out: Dict[str, Dict[str, int]] = {}
+        for t in resp.data or []:
+            m = t.public_metrics or {}
+            out[str(t.id)] = {
+                "like_count": int(m.get("like_count", 0)),
+                "retweet_count": int(m.get("retweet_count", 0)),
+                "reply_count": int(m.get("reply_count", 0)),
+            }
+        return out
+
+    def get_dms_since(self, since_id: Optional[str]):
+        # Tweepy v2 DM API availability may vary; here we stub to empty for safety.
+        return []
+
+    def search_hashtags(self, hashtags: List[str], since_id: Optional[str]) -> List[dict]:
+        query = " OR ".join([f"#{h}" for h in hashtags])
+        resp = self._retry(
+            self.client_v2.search_recent_tweets,
+            query=query,
+            max_results=100,
+            tweet_fields=["created_at", "public_metrics", "author_id"],
+            expansions=["author_id"],
+            since_id=since_id,
+        )
+        tweets = []
+        users_index = {u.id: u for u in (resp.includes.get("users", []) if hasattr(resp, "includes") else [])}
+        for t in resp.data or []:
+            user = users_index.get(t.author_id)
+            tweets.append({
+                "id": str(t.id),
+                "text": t.text,
+                "created_at": t.created_at,
+                "author": {
+                    "id": str(user.id) if user else None,
+                    "username": user.username if user else None,
+                    "description": user.description if user else None,
+                    "followers": user.public_metrics.get("followers_count") if user else 0,
+                },
+                "metrics": t.public_metrics,
+            })
+        return tweets
